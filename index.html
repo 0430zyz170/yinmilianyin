@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>隐秘联姻 · 张泽禹</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body {
+    font-family:"PingFang SC","Microsoft YaHei",sans-serif;
+    background:#08080e; color:#fff; overflow:hidden;
+    height:100vh; display:flex; justify-content:center; align-items:center;
+  }
+  #game {
+    position:relative; width:100%; max-width:480px; height:100vh; max-height:920px;
+    overflow:hidden; background:#111; box-shadow:0 0 50px rgba(0,0,0,.9);
+  }
+  #bg { position:absolute; inset:0; transition:background 1.1s ease; background:linear-gradient(160deg,#1a1a2e,#16213e,#0f3460); }
+  #bg::after { content:""; position:absolute; inset:0; background:radial-gradient(circle at 50% 25%, rgba(255,255,255,.07), transparent 62%); }
+  #char {
+    position:absolute; bottom:0; left:50%; transform:translateX(-50%);
+    width:75%; height:68%; pointer-events:none; opacity:.9;
+    background:radial-gradient(ellipse at 50% 100%, rgba(140,170,255,.22), transparent 72%);
+    transition:opacity .7s, background .7s;
+  }
+  #char.tense { background:radial-gradient(ellipse at 50% 100%, rgba(255,110,140,.25), transparent 72%); }
+
+  #topbar {
+    position:absolute; top:0; left:0; right:0; padding:12px 16px;
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:12.5px; z-index:10;
+    background:linear-gradient(to bottom, rgba(0,0,0,.65), transparent);
+  }
+  #idDisplay { opacity:.85; max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #affection { color:#ff9ec7; font-weight:bold; }
+  .btn-mini {
+    background:rgba(255,255,255,.14); border:none; color:#fff;
+    padding:4px 10px; border-radius:20px; font-size:12px; cursor:pointer; margin-left:6px;
+  }
+  .btn-mini:hover { background:rgba(255,255,255,.28); }
+
+  #dialogBox {
+    position:absolute; bottom:0; left:0; right:0; z-index:10;
+    padding:22px 20px 30px;
+    background:linear-gradient(to top, rgba(0,0,0,.94) 58%, transparent);
+    min-height:210px;
+  }
+  #speaker { font-size:14.5px; font-weight:bold; color:#8fb8ff; margin-bottom:8px; letter-spacing:1px; }
+  #speaker.zhang { color:#ffb3d1; }
+  #speaker.narr { color:#9a9ab0; font-weight:normal; font-style:italic; }
+  #text { font-size:15px; line-height:1.85; min-height:86px; color:#f0f0f5; text-shadow:0 1px 3px rgba(0,0,0,.85); white-space:pre-wrap; }
+
+  #choices { margin-top:14px; display:flex; flex-direction:column; gap:8px; }
+  .choice {
+    background:rgba(255,255,255,.09); border:1px solid rgba(255,255,255,.22);
+    color:#fff; padding:12px 16px; border-radius:12px; font-size:14px;
+    cursor:pointer; text-align:left; transition:all .2s; backdrop-filter:blur(6px);
+  }
+  .choice:hover { background:rgba(255,180,210,.22); border-color:#ffb3d1; transform:translateX(6px); }
+  .choice.danger { border-color:rgba(255,110,140,.5); }
+  .choice.danger:hover { background:rgba(255,110,140,.25); border-color:#ff6e8c; }
+
+  #customBox { margin-top:12px; display:none; gap:8px; flex-direction:column; }
+  #customBox textarea {
+    width:100%; min-height:62px; padding:11px 13px; border-radius:11px;
+    border:1px solid rgba(255,180,210,.45); background:rgba(20,20,32,.92);
+    color:#fff; font-size:14px; font-family:inherit; resize:none; outline:none; line-height:1.6;
+  }
+  #customBox textarea:focus { border-color:#ffb3d1; box-shadow:0 0 0 2px rgba(255,179,209,.15); }
+  #customBox .row { display:flex; gap:8px; }
+  #customBox button { flex:1; padding:11px; border-radius:10px; border:none; cursor:pointer; font-size:13.5px; font-weight:bold; }
+  #customSend { background:#ffb3d1; color:#1a1a2a; }
+  #customSkip { background:transparent; border:1px solid #555 !important; color:#bbb; }
+
+  #nextHint {
+    position:absolute; bottom:12px; right:20px; font-size:12px;
+    color:rgba(255,255,255,.45); animation:blink 1.3s infinite; cursor:pointer;
+  }
+  @keyframes blink { 0%,100%{opacity:.3} 50%{opacity:1} }
+
+  #settings {
+    position:absolute; inset:0; background:rgba(8,8,18,.97); z-index:50;
+    display:none; flex-direction:column; padding:26px 22px; gap:14px; overflow-y:auto;
+  }
+  #settings h2 { font-size:18px; color:#ffb3d1; }
+  #settings label { font-size:13px; color:#bbb; margin-top:6px; }
+  #settings input[type=text] {
+    width:100%; padding:11px; border-radius:9px; border:1px solid #3a3a4a;
+    background:#14141f; color:#fff; font-size:14px; outline:none;
+  }
+  #settings input[type=text]:focus { border-color:#ffb3d1; }
+  #settings input[type=file] { font-size:12px; color:#999; }
+  #settings button {
+    padding:13px; border-radius:11px; border:none; cursor:pointer;
+    font-size:14px; background:#ffb3d1; color:#1a1a2a; font-weight:bold; margin-top:4px;
+  }
+  #settings button.ghost { background:transparent; border:1px solid #555; color:#ccc; }
+  #avatarPreview {
+    width:78px; height:78px; border-radius:50%; object-fit:cover;
+    border:2px solid #ffb3d1; margin:0 auto; display:block; background:#1a1a2a;
+  }
+  #saveInfo { font-size:11.5px; color:#777; text-align:center; }
+
+  #historyPanel {
+    position:absolute; inset:0; z-index:70; background:rgba(6,6,14,.98);
+    display:none; flex-direction:column; padding:24px 22px; overflow-y:auto;
+  }
+  #historyPanel h2 { font-size:18px; color:#ffb3d1; margin-bottom:14px; }
+  .histItem {
+    background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12);
+    border-radius:11px; padding:12px 14px; margin-bottom:10px; font-size:13px; line-height:1.7;
+  }
+  .histItem .h-node { font-size:11px; color:#888; margin-bottom:4px; }
+  .histItem .h-in { color:#ffd88a; }
+  .histItem .h-reply { color:#cfd8ff; margin-top:6px; font-size:12.5px; }
+  #historyPanel button {
+    padding:13px; border-radius:11px; border:none; cursor:pointer;
+    font-size:14px; background:#ffb3d1; color:#1a1a2a; font-weight:bold; margin-top:8px;
+  }
+
+  #ending {
+    position:absolute; inset:0; z-index:60; display:none;
+    flex-direction:column; justify-content:center; align-items:center;
+    text-align:center; padding:34px 26px; background:rgba(4,4,12,.97); overflow-y:auto;
+  }
+  #ending h1 { font-size:23px; color:#ffb3d1; margin-bottom:18px; line-height:1.4; }
+  #ending p { font-size:14.5px; line-height:1.95; color:#d8d8e2; margin-bottom:26px; white-space:pre-wrap; }
+  #ending .stat { font-size:12px; color:#888; margin-bottom:20px; }
+  #ending button {
+    padding:13px 34px; border-radius:26px; border:none; cursor:pointer;
+    background:#ffb3d1; color:#1a1a2a; font-weight:bold; font-size:15px; margin:5px;
+  }
+  #ending button.ghost { background:transparent; border:1px solid #666; color:#ccc; }
+
+  #toast {
+    position:absolute; top:56px; left:50%; transform:translateX(-50%) translateY(-16px);
+    background:rgba(255,180,210,.92); color:#1a1a2a; font-size:12.5px; font-weight:bold;
+    padding:7px 16px; border-radius:20px; opacity:0; transition:all .35s; z-index:40; pointer-events:none;
+  }
+  #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div id="game">
+  <div id="bg"></div>
+  <div id="char"></div>
+
+  <div id="topbar">
+    <span id="idDisplay">ID: 未命名</span>
+    <span>
+      <span id="affection">好感 ♥ 0</span>
+      <button class="btn-mini" id="btnSound">🔊</button>
+      <button class="btn-mini" id="btnSet">⚙</button>
+    </span>
+  </div>
+
+  <div id="toast"></div>
+
+  <div id="dialogBox">
+    <div id="speaker"></div>
+    <div id="text"></div>
+    <div id="choices"></div>
+
+    <div id="customBox">
+      <textarea id="customInput" placeholder="输入你想说的话……"></textarea>
+      <div class="row">
+        <button id="customSend">说出口</button>
+        <button id="customSkip">沉默</button>
+      </div>
+    </div>
+
+    <div id="nextHint" style="display:none;">点击继续 ▸</div>
+  </div>
+
+  <div id="settings">
+    <h2>⚙ 设置 / 存档</h2>
+    <label>你的 ID</label>
+    <input type="text" id="inputId" placeholder="输入你的名字" maxlength="12">
+    <label>头像（存档展示用）</label>
+    <img id="avatarPreview" src="" alt="">
+    <input type="file" id="inputAvatar" accept="image/*">
+    <div id="saveInfo"></div>
+    <button id="btnSave">保存设置</button>
+    <button class="ghost" id="btnHistory">📜 输入历史</button>
+    <button class="ghost" id="btnCloseSet">返回游戏</button>
+    <button class="ghost" id="btnRestart">重新开始</button>
+  </div>
+
+  <div id="historyPanel">
+    <h2>📜 输入历史</h2>
+    <div id="historyList"></div>
+    <button id="btnCloseHistory">返回设置</button>
+  </div>
+
+  <div id="ending">
+    <h1 id="endTitle"></h1>
+    <p id="endText"></p>
+    <div class="stat" id="endStat"></div>
+    <button id="btnAgain">再玩一次</button>
+    <button class="ghost" id="btnEndSet">查看设置</button>
+  </div>
+</div>
+
+<script>
+/* ===================== 音频 ===================== */
+let audioCtx=null, soundOn=true, bgmOsc=null, bgmGain=null, bgmLfo=null;
+function initAudio(){ if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }
+function beep(freq=600,dur=0.08,type='sine',vol=0.07){
+  if(!soundOn) return; initAudio();
+  try{
+    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    o.type=type; o.frequency.value=freq;
+    g.gain.setValueAtTime(vol,audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime+dur);
+  }catch(e){}
+}
+function clickSound(){ beep(720,0.05,'triangle',0.05); }
+function heartSound(){ if(!soundOn)return; beep(130,0.16,'sine',0.11); setTimeout(()=>beep(105,0.22,'sine',0.09),145); }
+function tenseSound(){ if(!soundOn)return; beep(90,0.35,'sawtooth',0.05); }
+function goodSound(){ if(!soundOn)return; [660,880,1100].forEach((f,i)=>setTimeout(()=>beep(f,0.25,'sine',0.08),i*130)); }
+function startBGM(){
+  if(!soundOn) return; initAudio(); if(bgmOsc) return;
+  try{
+    bgmOsc=audioCtx.createOscillator(); bgmGain=audioCtx.createGain();
+    bgmOsc.type='sine'; bgmOsc.frequency.value=196;
+    bgmGain.gain.value=0.018;
+    bgmOsc.connect(bgmGain); bgmGain.connect(audioCtx.destination); bgmOsc.start();
+    bgmLfo=audioCtx.createOscillator(); const lg=audioCtx.createGain();
+    bgmLfo.frequency.value=0.12; lg.gain.value=0.007;
+    bgmLfo.connect(lg); lg.connect(bgmGain.gain); bgmLfo.start();
+  }catch(e){}
+}
+function stopBGM(){ if(bgmOsc){ try{bgmOsc.stop()}catch(e){} bgmOsc=null; } if(bgmLfo){ try{bgmLfo.stop()}catch(e){} bgmLfo=null; } }
+
+/* ===================== 状态 ===================== */
+const state = {
+  playerId:'未命名', avatar:'',
+  affection:0,
+  flags:{},
+  node:'start',
+  lastEnding:'',
+  history:[]
+};
+
+const BG = {
+  start:'linear-gradient(160deg,#1a1a2e,#16213e,#0f3460)',
+  contract:'linear-gradient(160deg,#2b1a2e,#3d1f3a,#1a0f2e)',
+  home:'linear-gradient(160deg,#1e2a38,#243b4a,#16222e)',
+  kitchen:'linear-gradient(160deg,#3a2a1a,#4a3520,#2a1e12)',
+  rain:'linear-gradient(160deg,#1a1f2e,#232b3d,#0f1420)',
+  night:'linear-gradient(160deg,#0f0f1e,#1a1a30,#0a0a18)',
+  stage:'linear-gradient(160deg,#2e1a3a,#4a1f5a,#1a0f2e)',
+  family:'linear-gradient(160deg,#2a1a1a,#3d2020,#1a0f0f)',
+  hospital:'linear-gradient(160deg,#1e2e2e,#2a3d3d,#162222)',
+  office:'linear-gradient(160deg,#1a2028,#243040,#121820)',
+  confess:'linear-gradient(160deg,#3a1f2e,#5a2a44,#2a0f1e)',
+  dark:'linear-gradient(160deg,#0e0a12,#1a0f1e,#08060c)',
+  cage:'linear-gradient(160deg,#180a14,#2a0f20,#0c050a)',
+  dawn:'linear-gradient(160deg,#2e2233,#4a3a4a,#1e1620)',
+  city:'linear-gradient(160deg,#1f2630,#2e3a48,#141a22)',
+  chase:'linear-gradient(160deg,#3a2a1e,#5a3a2a,#2a1a12)',
+  end:'linear-gradient(160deg,#140f1e,#221a30,#0a0812)'
+};
+
+/* ===================== 语气引擎 ===================== */
+const TONE = {
+  soft: ['温柔','轻声','小声','慢慢','轻轻','抱','牵','吻','陪','照顾'],
+  cold: ['冷','淡','随便','无所谓','算了','不必','不用','懒得','走了','别了'],
+  angry: ['滚','烦','讨厌','恨','别碰','走开','闭嘴','凭什么'],
+  sad: ['哭','难过','伤心','舍不得','想哭','委屈','后悔','如果'],
+  tease: ['哼','才不','谁说','你猜','偏不','逗你','活该'],
+  sincere: ['认真','真的','确定','想清楚','不后悔','愿意','一起']
+};
+function analyzeTone(text){
+  const t = text.toLowerCase();
+  const hits = {};
+  Object.keys(TONE).forEach(k=>{ hits[k] = TONE[k].filter(w=>t.includes(w)).length; });
+  let best='normal', max=0;
+  Object.keys(hits).forEach(k=>{ if(hits[k]>max){ max=hits[k]; best=k; } });
+  return best;
+}
+function matchBranch(cfg, input){
+  if(!cfg) return null;
+  if(!input) return cfg.fallback;
+  const text = input.toLowerCase().replace(/\s/g,'');
+  const tone = analyzeTone(text);
+  let best = null, bestScore = -1;
+  for(const b of cfg.branches){
+    let score = 0;
+    if(b.keys && b.keys.length){
+      const hit = b.keys.filter(k=>text.includes(k.toLowerCase())).length;
+      if(hit === 0 && !b.tone) continue;
+      score += hit * 2;
+    }
+    if(b.require && b.require.length){
+      const allHit = b.require.every(k=>text.includes(k.toLowerCase()));
+      if(!allHit) continue;
+      score += b.require.length * 3;
+    }
+    if(b.tone && b.tone === tone) score += 2;
+    if(b.priority) score += b.priority;
+    if(score > bestScore){ bestScore = score; best = b; }
+  }
+  return best || cfg.fallback;
+}
+
+/* ===================== 自定义配置 ===================== */
+const customConfigs = {
+
+  meet_custom:{
+    placeholder:'回应他的“合作”宣言……',
+    branches:[
+      { keys:['同意','好','可以','没问题'], tone:'sincere', aff:3, flag:'customAgree', next:'c_agree',
+        reply:'他挑了挑眉，似乎有点意外你这么爽快。\n\n“很好。合作愉快。”\n\n他伸出手。掌心微凉，却意外地稳。' },
+      { keys:['反悔','怕','敢','试试'], tone:'tease', aff:5, flag:'customTease', next:'c_tease',
+        reply:'他愣了一下，随即轻笑出声。\n\n“反悔？合同上写得清清楚楚。”\n\n他顿了顿，低声补了一句：“而且我这个人，不太喜欢输。”' },
+      { keys:['为什么','凭什么','不想','拒绝'], tone:'cold', aff:-1, flag:'customResist', next:'c_quiet',
+        reply:'他看了你几秒，没有生气。\n\n“理由，你比我清楚。”\n\n他把文件递过来：“签吧。至少表面上，我们要像一对。”' },
+      { keys:['你','名字','张泽禹'], aff:4, flag:'customName', next:'c_tease',
+        reply:'“张泽禹。”他重复了一遍自己的名字，像是确认什么。\n\n“记住了就好。”\n\n他嘴角似乎动了一下：“毕竟接下来一年，你要叫很多次。”' }
+    ],
+    fallback:{ aff:2, flag:'customMeetOther', next:'c_agree',
+      reply:'他安静地听完，点了点头。\n\n“嗯。”\n\n“那就这样。”\n\n他转身走向民政局的大门，步子不快，像是在等你跟上。' }
+  },
+
+  kitchen_custom:{
+    placeholder:'对这个煎糊了蛋的人说……',
+    branches:[
+      { keys:['糊','焦','失败','糟糕'], tone:'tease', aff:6, flag:'customTeaseKitchen', next:'k_help', heart:true,
+        reply:'他耳根瞬间红了。\n\n“……第一次做。”\n\n他把锅铲递给你，别开脸：“你来。”\n\n但你没有错过，他偷偷看你动作时，那种很认真的眼神。' },
+      { keys:['谢谢','辛苦','好吃','喜欢'], tone:'soft', aff:5, flag:'customThanksKitchen', next:'k_thanks', heart:true,
+        reply:'他愣了一下，像是没料到你会道谢。\n\n“……不用。”\n\n他把盘子往你面前推了推，声音低下去：“不够的话，我再做。”' },
+      { keys:['难吃','不想','不要','算了'], tone:'cold', aff:-2, flag:'customColdKitchen', next:'k_thanks',
+        reply:'他动作顿了一下。\n\n“……好。”\n\n他把盘子收回去，倒进垃圾桶。\n\n“以后不做了。”\n\n你看着他背影，忽然有点后悔。' }
+    ],
+    fallback:{ aff:3, flag:'customKitchenOther', next:'k_thanks',
+      reply:'他没抬头，只是把煎蛋翻了个面。\n\n“……嗯。”\n\n“坐吧。”\n\n语气还是淡淡的，但你能感觉到，他在等你坐下。' }
+  },
+
+  rain_custom:{
+    placeholder:'电话那头，你想说……',
+    branches:[
+      { keys:['没带伞','下雨','接我','来'], aff:5, flag:'customPickup', next:'r_pickup', heart:true,
+        reply:'电话那头沉默了两秒。\n\n“站那别动。”\n\n然后就挂了。\n\n十分钟后，他的车停在路边。' },
+      { keys:['不用','自己','没关系','别来'], tone:'cold', aff:1, flag:'customAlone', next:'r_alone',
+        reply:'“随你。”\n\n他挂得很快。\n\n可你冒雨跑回家时，他正站在玄关，手里拿着伞，脸色不太好。' },
+      { keys:['想','见','你'], tone:'soft', aff:7, flag:'customMiss', next:'r_pickup', heart:true,
+        reply:'电话那头安静了几秒。\n\n“……知道了。”\n\n他挂断电话，但你能听出，他声音里那点没压住的东西。' }
+    ],
+    fallback:{ aff:3, flag:'customRainOther', next:'r_pickup',
+      reply:'“嗯。”\n\n他只应了一声，就挂了。\n\n但你还没走到楼下，就看见他的车，已经停在雨里。' }
+  },
+
+  contract_end_custom:{
+    placeholder:'你想对他说什么……',
+    branches:[
+      { keys:['不想','别走','留下','不要走','别结束','舍不得'], aff:7, flag:'customStay', next:'ce_refuse', heart:true,
+        reply:'他抬起头，眼神里有什么东西亮了一下。\n\n“……你再说一遍。”\n\n“我说，我不想结束。”\n\n他站起身，走到你面前，声音很轻：\n\n“那就不结束。”' },
+      { keys:['喜欢','爱你','心动','在意','想你'], tone:'sincere', aff:10, flag:'customLove', next:'ce_refuse', heart:true,
+        reply:'他整个人都愣住了。\n\n“……你说什么？”\n\n你看着他，一字一句地重复了一遍。\n\n他垂在身侧的手慢慢攥紧，又松开。\n\n“这句话，”他说，“我等了整整一年。”' },
+      { keys:['随便','无所谓','都行','交易','合约','结束吧','签字'], tone:'cold', aff:-6, flag:'customCold', next:'cage_trigger',
+        reply:'他握着笔的手停住了。\n\n“交易。”\n\n他重复了一遍这两个字，声音很轻。\n\n“……对，是交易。”\n\n他抬起头，眼神里有什么东西沉了下去。\n\n“那如果我不想交易了呢。”' },
+      { keys:['为什么','原因','解释','到底'], aff:3, flag:'customAsk', next:'ce_ask',
+        reply:'他沉默了几秒。\n\n“……因为你从来没有问过。”\n\n“问什么？”\n\n“问我，想不想结束。”\n\n他抬眼看你，声音很轻：“你从来没有问过。”' },
+      { keys:['怕','害怕','不敢','不确定'], tone:'sad', aff:4, flag:'customAfraid', next:'ce_ask',
+        reply:'他看了你很久。\n\n“……怕什么。”\n\n“怕这一年，只是我一个人的错觉。”\n\n他忽然笑了，很轻，很无奈。\n\n“那你现在可以不怕了。”' }
+    ],
+    fallback:{ aff:2, flag:'customOther', next:'ce_ask',
+      reply:'他听完，安静了很久。\n\n“……嗯。”\n\n他把文件合上，推到一边。\n\n“那我们，再谈谈。”' }
+  },
+
+  confess_custom:{
+    placeholder:'回应他的告白……',
+    branches:[
+      { keys:['别放','不走','留下','愿意','我也','喜欢你','爱你'], tone:'sincere', aff:10, flag:'customYes', next:'cf_stay', heart:true,
+        reply:'他怔了一秒，然后伸手，把你轻轻拉进怀里。\n\n“……你说的。”\n\n他的心跳快得不像话，抵在你耳边。\n\n“后悔也来不及了。”' },
+      { keys:['确定','认真','真的','想清楚','你确定'], aff:5, flag:'customSure', next:'cf_sure',
+        reply:'“确定。”\n\n他看着你，眼神认真得不像平时那个冷静的人。\n\n“从你推门进病房那天起，我就确定了。”' },
+      { keys:['合约','交易','不是真的','骗','假'], tone:'cold', aff:-5, flag:'customNo', next:'cf_cold',
+        reply:'他脸上的表情一点点淡下去。\n\n“……对。”\n\n“是合约。”\n\n他退后一步，声音恢复成最初那种平静。\n\n“抱歉，是我越界了。”' },
+      { keys:['怕','害怕','不敢','退缩'], tone:'sad', aff:3, flag:'customScared', next:'cf_sure',
+        reply:'他听完，眼神软下来。\n\n“怕什么。”\n\n“怕失去。”\n\n他伸手，轻轻碰了一下你的手背。\n\n“那我们就慢慢来。反正……我有的是时间。”' }
+    ],
+    fallback:{ aff:4, flag:'customMid', next:'cf_sure',
+      reply:'他安静地听完，没有立刻回答。\n\n过了很久，他轻轻笑了一下。\n\n“你这个人……真的很会让人心慌。”\n\n“但没关系。”他说，“我等你。”' }
+  },
+
+  cage_custom:{
+    placeholder:'隔着门，你想对他说……',
+    branches:[
+      { keys:['医生','治疗','一起','帮你','陪你','看医生'], tone:'soft', aff:6, flag:'cageEscape', next:'cage_escape', heart:true,
+        reply:'门外安静了很久。\n\n然后你听见他蹲下来的声音，声音闷闷的：\n\n“……你不恨我吗。”\n\n“恨。”你说，“但我更不想看你变成这样。”\n\n门锁，咔哒一声开了。' },
+      { keys:['放我','出去','离开','自由','开门'], tone:'angry', aff:-1, flag:'breakout', next:'cage_breakout',
+        reply:'门外沉默了很久。\n\n“我不能。”\n\n“你放我走。”\n\n“……我不能。”\n\n他的声音在发抖，但门始终没有开。' },
+      { keys:['怕','害怕','恐怖','威胁','报警'], aff:2, flag:'customFear', next:'cage_mid',
+        reply:'门外传来一声很轻的抽气。\n\n“……你怕我。”\n\n不是疑问句，是陈述句。\n\n过了很久，他说：\n\n“对不起。”\n\n“我不知道，我变成了这样。”' },
+      { keys:['为什么','怎么会','不明白','怎么会这样'], aff:3, flag:'customWhy', next:'cage_mid',
+        reply:'门外很久没有声音。\n\n然后你听见他靠着门滑坐下去。\n\n“……因为我一想到你要走，”他说，“就觉得别的都无所谓了。”\n\n“我知道这样不对。”\n\n“可是我停不下来。”' }
+    ],
+    fallback:{ aff:3, flag:'customCageOther', next:'cage_mid',
+      reply:'门外很久没有声音。\n\n然后你听见他靠在门上的动静。\n\n“……我知道我错了。”\n\n“但我不知道，除了这样，我还能怎么办。”' }
+  },
+
+  /* 追妻火葬场专用 */
+  chase_custom:{
+    placeholder:'重逢那天，你想对他说……',
+    branches:[
+      { keys:['不见','别来','走开','没必要','算了'], tone:'cold', aff:-2, flag:'chaseCold', next:'chase_mid',
+        reply:'他站在雨里，没撑伞。\n\n“……好。”\n\n他退后一步，把手里那束花放在台阶上。\n\n“那我下次再来。”\n\n你关上门的时候，听见他在门外站了很久。' },
+      { keys:['为什么','凭什么','现在','晚了','错过'], tone:'angry', aff:2, flag:'chaseAngry', next:'chase_mid',
+        reply:'他沉默地看着你。\n\n“因为那天签字的时候，我后悔了。”\n\n“那为什么不说？”\n\n“因为那时候我还在跟自己赌气。”\n\n他垂下眼：“现在不赌了。”' },
+      { keys:['想我','还爱','回来','复合','重新','开始'], tone:'sincere', aff:8, flag:'chaseSoft', next:'chase_soft', heart:true,
+        reply:'他愣住，像是没料到你会说这个。\n\n“……你说真的？”\n\n“嗯。”\n\n他忽然低下头，肩膀轻轻抖了一下。\n\n再抬头的时候，眼眶是红的。' }
+    ],
+    fallback:{ aff:4, flag:'chaseOther', next:'chase_mid',
+      reply:'他听完，安静了很久。\n\n“……我知道你还在生气。”\n\n“没关系。”\n\n“我可以等。”' }
+  }
+};
+
+/* ===================== 剧情 ===================== */
+const nodes = {
+
+start:{ bg:'start', speaker:'', cls:'narr', char:false,
+  text:'《隐秘联姻》\n\n一纸合约，两个陌生人。\n\n家里的安排来得猝不及防——为了两家的生意，你必须和一个从未见过的人结婚。\n\n为期一年。到期各自自由。\n\n对方的名字，叫张泽禹。',
+  next:'meet' },
+
+meet:{ bg:'start', speaker:'张泽禹', cls:'zhang',
+  text:'“你好，我是张泽禹。”\n\n民政局门口，他穿着干净的白衬衫，语气平静得像在谈一笔生意。\n\n“先把话说清楚——这是合作。一年后，互不相欠。”',
+  choices:[
+    { t:'“好，我同意。”', aff:2, next:'c_agree', flag:'calm' },
+    { t:'“你就不怕我反悔？”', aff:4, next:'c_tease', flag:'playful' },
+    { t:'沉默地点头。', aff:1, next:'c_quiet', flag:'quiet' }
+  ],
+  custom:'meet_custom'
+},
+
+c_agree:{ bg:'contract', speaker:'张泽禹', cls:'zhang',
+  text:'他挑了挑眉，似乎有点意外你这么爽快。\n\n“很好。合作愉快。”\n\n他伸出手。掌心微凉，却意外地稳。',
+  next:'move_in' },
+
+c_tease:{ bg:'contract', speaker:'张泽禹', cls:'zhang',
+  text:'他愣了一下，随即轻笑出声。\n\n“反悔？合同上写得清清楚楚。”\n\n他顿了顿，低声补了一句：“而且我这个人，不太喜欢输。”',
+  next:'move_in' },
+
+c_quiet:{ bg:'contract', speaker:'张泽禹', cls:'zhang',
+  text:'他没再多问，只是把签好的文件递给你。\n\n“走吧。搬家车已经在等了。”\n\n你跟上他的脚步，心里说不清是什么滋味。',
+  next:'move_in' },
+
+move_in:{ bg:'home', speaker:'', cls:'narr', char:false,
+  text:'同居第一天。\n\n房子很大，却很空。他把主卧让给了你，自己睡客房。\n\n“有需要就叫我。”说完，他关上了门。',
+  next:'kitchen' },
+
+kitchen:{ bg:'kitchen', speaker:'张泽禹', cls:'zhang',
+  text:'第二天早上，你被厨房的动静吵醒。\n\n他系着围裙，正手忙脚乱地煎蛋，锅里冒出一股焦味。\n\n“……你醒了。”他别开脸，“我只是，顺便做多了。”',
+  choices:[
+    { t:'“我来吧，你煎糊了。”', aff:5, next:'k_help', flag:'help' },
+    { t:'“谢谢，我正好饿了。”', aff:3, next:'k_thanks', flag:'thanks' },
+    { t:'偷偷拍下他手忙脚乱的样子。', aff:6, next:'k_photo', flag:'photo', heart:true }
+  ],
+  custom:'kitchen_custom'
+},
+
+k_help:{ bg:'kitchen', speaker:'张泽禹', cls:'zhang',
+  text:'他默默退到一边，看你熟练地翻锅。\n\n“你以前……经常做饭？”\n\n“嗯。”\n\n他没再说话，但你看得出，他在认真记你的每一个动作。',
+  next:'night1' },
+
+k_thanks:{ bg:'kitchen', speaker:'张泽禹', cls:'zhang',
+  text:'他把盘子推到你面前，煎蛋虽然有点焦，但摆得很整齐。\n\n“将就吃。”\n\n你咬了一口，他盯着你的表情，像个等评分的学生。',
+  next:'night1' },
+
+k_photo:{ bg:'kitchen', speaker:'张泽禹', cls:'zhang',
+  text:'快门声响起，他猛地回头。\n\n“删掉。”\n\n“不删。”\n\n他耳尖有点红，伸手来抢，你却先一步藏到身后。那一刻，你们靠得很近。',
+  next:'night1', heart:true },
+
+night1:{ bg:'night', speaker:'张泽禹', cls:'zhang',
+  text:'夜里，你路过客厅，发现他还没睡。\n\n他坐在沙发上翻文件，台灯把他的侧脸照得很柔和。\n\n“……睡不着？”',
+  choices:[
+    { t:'“有点认床。”', aff:3, next:'n_soft', flag:'soft' },
+    { t:'“你在忙什么？”', aff:4, next:'n_work', flag:'work' },
+    { t:'坐到他旁边，不说话。', aff:6, next:'n_silent', flag:'silent', heart:true }
+  ]},
+
+n_soft:{ bg:'night', speaker:'张泽禹', cls:'zhang',
+  text:'他起身，给你倒了一杯温牛奶。\n\n“喝了会好一点。”\n\n递过来时，指尖不小心碰到你的手，两个人都顿了一下。',
+  next:'rain', heart:true },
+
+n_work:{ bg:'night', speaker:'张泽禹', cls:'zhang',
+  text:'“一些公司的事。”他合上文件，“你不用管。”\n\n你注意到他眼下有点青。\n\n“你多久没好好睡了？”\n\n他没回答，只是笑了一下。',
+  next:'rain' },
+
+n_silent:{ bg:'night', speaker:'张泽禹', cls:'zhang',
+  text:'你坐过去，没说话。他也没问。\n\n客厅里只有钟表的声音。过了很久，他轻轻说了一句：\n\n“……这样，好像也不错。”',
+  next:'rain', heart:true },
+
+rain:{ bg:'rain', speaker:'', cls:'narr', char:false,
+  text:'一周后，下了一场很大的雨。\n\n你忘带伞，站在公司楼下发愁。手机响了——是他。\n\n“在哪。”',
+  choices:[
+    { t:'“公司楼下，没带伞。”', aff:4, next:'r_pickup', flag:'pickup' },
+    { t:'“不用管我，我自己回去。”', aff:2, next:'r_alone', flag:'alone' }
+  ],
+  custom:'rain_custom'
+},
+
+r_pickup:{ bg:'rain', speaker:'张泽禹', cls:'zhang',
+  text:'十分钟后，他的车停在路边。\n\n他撑着伞走过来，把伞大半倾向你这边，自己肩膀湿了一片。\n\n“上车。”\n\n车里很暖，他递给你一条干毛巾，没看你。',
+  next:'stage', heart:true },
+
+r_alone:{ bg:'rain', speaker:'', cls:'narr', char:false,
+  text:'你冒雨跑回家，浑身湿透。\n\n推开门，他正站在玄关，手里拿着伞，脸色不太好。\n\n“……我说了让你等我。”\n\n他把毛巾盖在你头上，动作有点重，却很小心。',
+  next:'stage', heart:true },
+
+stage:{ bg:'stage', speaker:'', cls:'narr', char:false,
+  text:'公司年会，他被推上台唱歌。\n\n聚光灯下，他握着话筒，目光越过人群，落在你身上。\n\n那一瞬间，你忽然觉得，他好像不再只是“合作对象”了。',
+  choices:[
+    { t:'在台下为他鼓掌。', aff:5, next:'s_clap', flag:'clap' },
+    { t:'和他对视，笑了一下。', aff:7, next:'s_eye', flag:'eye', heart:true },
+    { t:'低头看手机，装作不在意。', aff:1, next:'s_ignore', flag:'ignore' }
+  ]},
+
+s_clap:{ bg:'stage', speaker:'张泽禹', cls:'zhang',
+  text:'唱完，他下台第一件事就是走向你。\n\n“刚才……你鼓掌了？”\n\n“嗯。”\n\n他嘴角压不住地往上扬，又很快板起脸：“随便唱的。”',
+  next:'family' },
+
+s_eye:{ bg:'stage', speaker:'张泽禹', cls:'zhang',
+  text:'四目相对的那一刻，他的声音轻了半拍。\n\n台下那么多人，他眼里却只有你。\n\n唱完，他在你耳边低声说：“……别那样看我。”\n\n“为什么？”\n\n“我会当真。”',
+  next:'family', heart:true },
+
+s_ignore:{ bg:'stage', speaker:'张泽禹', cls:'zhang',
+  text:'他唱完，径直从你身边走过，没有停留。\n\n你抬头时，只看到他挺直的背影。\n\n心里，莫名有点空。',
+  next:'family' },
+
+family:{ bg:'family', speaker:'', cls:'narr', char:false,
+  text:'转折来得毫无预兆。\n\n他父亲病倒，家族逼他立刻接手公司，也逼他……结束这段“没有意义”的婚姻。\n\n你在病房外，听见他和家人的争吵。',
+  choices:[
+    { t:'推门进去，站在他身边。', aff:8, next:'f_stand', flag:'stand', heart:true },
+    { t:'转身离开，不想让他为难。', aff:-2, next:'f_leave', flag:'leave' },
+    { t:'在门外安静地等他出来。', aff:4, next:'f_wait', flag:'wait' }
+  ]},
+
+f_stand:{ bg:'hospital', speaker:'张泽禹', cls:'zhang',
+  text:'你推开门，所有人的目光都落在你身上。\n\n他愣住，随即皱眉：“你进来干什么。”\n\n“我是你妻子。”你说，“这件事，我有权在场。”\n\n他沉默了很久，最后，握住了你的手。',
+  next:'contract_end', heart:true },
+
+f_leave:{ bg:'hospital', speaker:'', cls:'narr', char:false,
+  text:'你悄悄离开，没有让他发现。\n\n那天晚上，他回家很晚，站在你房门口很久，最终什么也没说。\n\n你们之间，好像隔了一层看不见的墙。',
+  next:'contract_end' },
+
+f_wait:{ bg:'hospital', speaker:'张泽禹', cls:'zhang',
+  text:'他在走廊尽头看到你，脚步顿了顿。\n\n“……你一直在这？”\n\n“嗯。”\n\n他张了张嘴，最后只是说：“回去吧，外面冷。”\n\n但他走在你身边，走得很慢。',
+  next:'contract_end', heart:true },
+
+contract_end:{ bg:'office', speaker:'张泽禹', cls:'zhang',
+  text:'合约到期的前一周。\n\n他把一份文件放在桌上，推到你面前。\n\n“一年了。”\n\n他垂着眼，看不清情绪。\n\n“按约定，该结束了。”',
+  choices:[
+    { t:'“张泽禹，你想结束吗？”', aff:5, next:'ce_ask', flag:'ask' },
+    { t:'“好，我签字。”', aff:-2, next:'ce_sign', flag:'sign' },
+    { t:'把文件推回去：“我不签。”', aff:7, next:'ce_refuse', flag:'refuse', heart:true }
+  ],
+  custom:'contract_end_custom'
+},
+
+ce_ask:{ bg:'office', speaker:'张泽禹', cls:'zhang',
+  text:'他抬起头，看了你很久。\n\n“……不想。”\n\n声音很轻，却很清楚。\n\n“那你为什么还要拿出来？”\n\n“因为我在赌。”他说，“赌你会不会问这一句。”',
+  next:'confess', heart:true },
+
+ce_sign:{ bg:'office', speaker:'张泽禹', cls:'zhang',
+  text:'他接过文件，指尖停了一下。\n\n“……好。”\n\n签完字，他把笔放下，起身走到窗边。\n\n“什么时候搬？”\n\n“下周。”\n\n他背对着你，很久没有出声。',
+  next:'chase_intro', afterChaseIntro:true },
+
+ce_refuse:{ bg:'office', speaker:'张泽禹', cls:'zhang',
+  text:'他盯着那份被推回来的文件，忽然笑了。\n\n“你知道你在做什么吗。”\n\n“知道。”\n\n“那我也告诉你一件事。”他站起身，走到你面前，“这一年，我早就没把它当合约了。”',
+  next:'confess', heart:true },
+
+confess:{ bg:'confess', speaker:'张泽禹', cls:'zhang',
+  text:'那天夜里，他敲开你的门。\n\n“我想问你一件事。”\n\n他站在门口，声音比平时低。\n\n“如果我说……我不想放你走呢。”',
+  choices:[
+    { t:'“那就别放。”', aff:8, next:'cf_stay', flag:'stay', heart:true },
+    { t:'“张泽禹，你确定吗？”', aff:5, next:'cf_sure', flag:'sure' },
+    { t:'“我们之间，本来就是合约。”', aff:-4, next:'cf_cold', flag:'cold' }
+  ],
+  custom:'confess_custom'
+},
+
+cf_stay:{ bg:'confess', speaker:'张泽禹', cls:'zhang',
+  text:'他怔了一秒，然后伸手，把你轻轻拉进怀里。\n\n“……你说的。”\n\n他的心跳快得不像话，抵在你耳边。\n\n“后悔也来不及了。”',
+  next:'final_check', heart:true },
+
+cf_sure:{ bg:'confess', speaker:'张泽禹', cls:'zhang',
+  text:'“确定。”\n\n他看着你，眼神认真得不像平时那个冷静的人。\n\n“从你推门进病房那天起，我就确定了。”',
+  next:'final_check', heart:true },
+
+cf_cold:{ bg:'confess', speaker:'张泽禹', cls:'zhang',
+  text:'他脸上的表情一点点淡下去。\n\n“……对。”\n\n“是合约。”\n\n他退后一步，声音恢复成最初那种平静。\n\n“抱歉，是我越界了。”',
+  next:'final_check' },
+
+/* ---------- 隐藏支线：囚笼线 ---------- */
+cage_trigger:{ bg:'dark', speaker:'张泽禹', cls:'zhang', tense:true,
+  text:'他握着笔的手停住了。\n\n“交易。”\n\n他重复了一遍这两个字，声音很轻。\n\n“……对，是交易。”\n\n他抬起头，眼神里有什么东西沉了下去。\n\n“那如果我不想交易了呢。”',
+  next:'cage_lock' },
+
+cage_lock:{ bg:'cage', speaker:'', cls:'narr', char:false, tense:true,
+  text:'那天之后，你发现家里的门锁换了。\n\n你的手机不见了，窗帘一直拉着，窗外是看不清的天色。\n\n他照常给你做饭，照常问你冷不冷，只是不再让你出门。\n\n“再给我一点时间。”他说，“等我把外面的事处理完，就放你走。”',
+  choices:[
+    { t:'冷静地和他谈。', aff:4, next:'cage_talk', flag:'talk' },
+    { t:'砸门、大喊、反抗。', aff:2, next:'cage_fight', flag:'fight', danger:true },
+    { t:'不说话，开始绝食。', aff:-2, next:'cage_silent', flag:'hungerStrike', danger:true }
+  ]},
+
+cage_talk:{ bg:'cage', speaker:'', cls:'narr', char:false,
+  text:'你没有哭，也没有求他。\n\n你只是看着他的眼睛，一字一句地说：\n\n“张泽禹，这不是爱。”\n\n“爱一个人，不会让她害怕。”\n\n他站在原地，很久没有动。',
+  next:'cage_mid' },
+
+cage_fight:{ bg:'cage', speaker:'张泽禹', cls:'zhang', tense:true,
+  text:'门被砸得砰砰响，你喊到嗓子发哑。\n\n他站在门外，声音第一次慌了。\n\n“别喊了……别喊了。”\n\n“你开门！”\n\n“……我不能。”\n\n那天晚上，他坐在门外的地板上，一整夜没走。',
+  next:'cage_mid' },
+
+cage_silent:{ bg:'cage', speaker:'张泽禹', cls:'zhang', tense:true,
+  text:'你把饭推到一边，一口不吃。\n\n第三天，他端着粥进来，手在抖。\n\n“吃一点。”\n\n你看着他，没说话。\n\n“……你到底要我怎么做。”\n\n他的声音，第一次带了哭腔。',
+  next:'cage_mid' },
+
+cage_mid:{ bg:'cage', speaker:'', cls:'narr', char:false, tense:true,
+  text:'僵持到第七天。\n\n他坐在客厅，瘦了一圈，眼里全是红血丝。\n\n钥匙就放在茶几上，他盯着它，像在和自己打架。\n\n你知道，这是最后的机会。',
+  choices:[
+    { t:'握住他的手：“一起去看医生，好吗？”', aff:6, next:'cage_escape', flag:'cageEscape', heart:true },
+    { t:'拿起钥匙，头也不回地离开。', aff:0, next:'cage_breakout', flag:'breakout', danger:true },
+    { t:'“你放我走，我们就当什么都没发生过。”', aff:-3, next:'cage_breakout', flag:'breakout', danger:true }
+  ],
+  custom:'cage_custom'
+},
+
+cage_escape:{ bg:'dawn', speaker:'张泽禹', cls:'zhang',
+  text:'他愣住，眼泪毫无预兆地掉下来。\n\n“……你不恨我吗。”\n\n“恨。”你说，“但我更不想看你变成这样。”\n\n他攥住你的手，攥得很紧，像抓住最后一根浮木。\n\n“好。”他哽咽着说，“我去。”',
+  next:'cage_final_good' },
+
+cage_breakout:{ bg:'dawn', speaker:'', cls:'narr', char:false,
+  text:'你拿起钥匙，打开了那扇门。\n\n外面的风很冷，天刚蒙蒙亮。\n\n你没有回头。\n\n身后传来他的声音，很轻，像是自言自语：\n\n“……对不起。”',
+  next:'cage_final_bad' },
+
+cage_final_good:{ bg:'dawn', speaker:'', cls:'narr', char:false, text:'', isEnding:true, forceEnd:'cage' },
+cage_final_bad:{ bg:'dawn', speaker:'', cls:'narr', char:false, text:'', isEnding:true, forceEnd:'cage_break' },
+
+/* ---------- 追妻火葬场支线 ---------- */
+chase_intro:{ bg:'city', speaker:'', cls:'narr', char:false,
+  text:'离开那栋房子，已经三个月了。\n\n你换了城市，换了号码，日子慢慢回到正轨。\n\n直到那天，下着雨，你走出公司，看到一个人撑着伞站在街角。\n\n是他。',
+  next:'chase_meet' },
+
+chase_meet:{ bg:'rain', speaker:'张泽禹', cls:'zhang',
+  text:'他瘦了，眼底有很深的青。\n\n看见你的时候，他没有立刻走过来，只是站在原地。\n\n“……好久不见。”\n\n他手里拿着一束花，已经被雨打湿了一半。',
+  choices:[
+    { t:'转身就走。', aff:-3, next:'chase_cold', flag:'chaseColdPath' },
+    { t:'站在原地，看着他。', aff:3, next:'chase_mid', flag:'chaseWait' },
+    { t:'“你来干什么。”', aff:0, next:'chase_mid', flag:'chaseAngryPath' }
+  ],
+  custom:'chase_custom'
+},
+
+chase_cold:{ bg:'city', speaker:'张泽禹', cls:'zhang',
+  text:'你没有回头。\n\n身后传来他的声音，很轻：\n\n“……我知道你还在生气。”\n\n“没关系。”\n\n“我可以等。”\n\n第二天，你又看到他。第三天，还是。',
+  next:'chase_mid' },
+
+chase_mid:{ bg:'rain', speaker:'张泽禹', cls:'zhang',
+  text:'他把花递过来，你没有接。\n\n他也不勉强，只是把花放在旁边的台阶上。\n\n“这一年，我想了很多。”\n\n“我知道我错了。”\n\n他抬起头，认真地看着你：“我错过一次，不想再错第二次。”',
+  choices:[
+    { t:'“你凭什么觉得我会回头。”', aff:4, next:'chase_soft', flag:'chaseAngry2' },
+    { t:'“我需要时间。”', aff:5, next:'chase_time', flag:'chaseTime', heart:true },
+    { t:'“对不起，我们已经结束了。”', aff:-5, next:'chase_end_bad', flag:'chaseEnd' }
+  ]},
+
+chase_soft:{ bg:'chase', speaker:'张泽禹', cls:'zhang',
+  text:'他沉默了一下。\n\n“凭我知道，你也还没有真的放下。”\n\n“凭什么这么肯定？”\n\n“因为你刚刚，没有立刻走。”\n\n他往前走了一步，停在离你一步远的地方，没有再靠近。',
+  next:'chase_final_good' },
+
+chase_time:{ bg:'chase', speaker:'张泽禹', cls:'zhang',
+  text:'他点了点头。\n\n“好。”\n\n“我等。”\n\n他把伞递给你，自己退进雨里。\n\n“这次换我追你。”\n\n“多久都行。”',
+  next:'chase_final_good' },
+
+chase_end_bad:{ bg:'city', speaker:'', cls:'narr', char:false,
+  text:'他安静地听完。\n\n“……好。”\n\n“那我不打扰你了。”\n\n他把花留在台阶上，转身走进雨里。\n\n这一次，他没有再回头。',
+  next:'chase_final_bad' },
+
+chase_final_good:{ bg:'chase', speaker:'', cls:'narr', char:false, text:'', isEnding:true, forceEnd:'chase_good' },
+chase_final_bad:{ bg:'city', speaker:'', cls:'narr', char:false, text:'', isEnding:true, forceEnd:'chase_bad' },
+
+final_check:{ bg:'end', speaker:'', cls:'narr', char:false, text:'', isEnding:true }
+};
+
+/* ===================== 结局 ===================== */
+const endings = {
+  hidden_true:{ title:'💗 隐藏结局 · 不是合约',
+    text:'一年后，你们补办了一场小小的婚礼。\n\n他站在花门下等你，眼神比民政局那天温柔了太多。\n\n“张泽禹。”\n\n“嗯？”\n\n“这次，不是合作了。”\n\n他笑了，低头在你额上落下一个很轻的吻。\n\n“从来都不是。”' },
+  true_love:{ title:'💗 结局 · 先婚后爱',
+    text:'合约到期那天，你们谁也没提签字的事。\n\n他把那份文件锁进抽屉最深处。\n\n“留着吧。”他说，“当纪念。”\n\n你问他纪念什么。\n\n“纪念我差点错过你。”' },
+  warm_be:{ title:'🌙 结局 · 温柔的距离',
+    text:'合同到期，你们平静地办了手续。\n\n他帮你把行李搬上车，站在楼下目送你离开。\n\n“以后……照顾好自己。”\n\n车开出去很远，你回头看，他还站在原地。\n\n有些喜欢，来得太晚，说得太轻。' },
+  regret_be:{ title:'🌧 结局 · 错过',
+    text:'你离开后的第三个月，收到他寄来的一封信。\n\n信里只有一句话：\n\n“那天在门口，我本来想说，别走。”\n\n你把信折好，放进抽屉最深处。\n\n有些人，遇见就已经是上上签了。' },
+  open_end:{ title:'🌱 结局 · 未完待续',
+    text:'你们没有立刻给出答案。\n\n他说：“给我一点时间。”\n\n你说：“好。”\n\n半年后，你在街角遇到他。他手里拿着两杯咖啡，看到你，愣了一下，然后笑了。\n\n“好久不见。”\n\n故事，也许才刚刚开始。' },
+  career:{ title:'💼 结局 · 各自山海',
+    text:'你选择了事业，他选择了家族。\n\n分开那天，你们在机场握了握手，像最初那样。\n\n“合作愉快。”\n\n“合作愉快。”\n\n转身之后，谁都没有回头。\n\n但很多年后，你在新闻上看到他，还是会停一下。' },
+  friend:{ title:'🤝 结局 · 最好的距离',
+    text:'你们没有成为恋人，却成了彼此最信任的人。\n\n他会在你加班时送来热汤，你会在他应酬后发一句“早点睡”。\n\n“这样也挺好的。”他说。\n\n“嗯。”\n\n有些关系，不必命名，也很珍贵。' },
+  cage:{ title:'🔒 隐藏结局 · 囚笼之外',
+    text:'他把你留在了那栋房子里。\n\n门锁换了，手机不见了，窗帘一直拉着。\n\n“再给我一点时间。”他说，“等我把外面的事处理完，就放你走。”\n\n你没有哭，也没有求他。\n\n你只是看着他的眼睛，一字一句地说：\n\n“张泽禹，这不是爱。”\n\n他愣住了。\n\n后来，他握着你的手，哭得像个孩子。\n\n你们一起去了心理咨询。他学着把“害怕失去”说出来，而不是变成锁。\n\n这不是一个完美的结局。\n\n但你们，都走出了那个笼子。' },
+  cage_break:{ title:'⛓ 隐藏结局 · 决裂',
+    text:'你拿着钥匙，打开了那扇门。\n\n外面的风很冷，天刚蒙蒙亮。\n\n你没有回头。\n\n身后传来他的声音，很轻：\n\n“……对不起。”\n\n后来你们再也没有见过。\n\n很多年后你才明白——\n\n有些人不是不爱，是爱得太用力，把爱变成了伤害。\n\n而你，值得被好好爱，而不是被锁住。' },
+
+  /* 追妻火葬场专属 */
+  chase_good:{ title:'🔥 隐藏结局 · 追妻火葬场',
+    text:'他追了你整整一年。\n\n从你换的城市，到你家楼下，再到你公司门口。\n\n他没做过任何越界的事，只是每周出现一次，放下一束花，说一句“我还在”。\n\n后来，你终于在某一天停下了脚步。\n\n“张泽禹。”\n\n“嗯？”\n\n“我累了。”\n\n他愣住了，脸色发白。\n\n“别追了。”你看着他，轻轻笑了一下，“……我跟你走。”\n\n他站在原地，很久没反应过来。\n\n然后他低下头，肩膀轻轻地抖了一下。\n\n这一次，是他哭了。' },
+
+  chase_bad:{ title:'💔 隐藏结局 · 这次换我放手',
+    text:'他没有再出现。\n\n那束花，你后来让人扔掉了。\n\n又过了很久，你在一场朋友的婚礼上，听说他去了外地。\n\n有人问起你们的事，他只是笑了笑。\n\n“是我弄丢的。”\n\n“不怪她。”\n\n你听到这话的时候，心里忽然空了一下。\n\n但你知道，有些门，关上了就是关上了。' }
+};
+
+/* ===================== 渲染 ===================== */
+const $=id=>document.getElementById(id);
+const bgEl=$('bg'), speakerEl=$('speaker'), textEl=$('text'), choicesEl=$('choices'),
+      nextHint=$('nextHint'), charEl=$('char'),
+      customBox=$('customBox'), customInput=$('customInput');
+
+function toast(msg){
+  const t=$('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),1600);
+}
+function updateHUD(){
+  $('idDisplay').textContent='ID: '+state.playerId;
+  $('affection').textContent='好感 ♥ '+state.affection;
+}
+function setBG(k){ bgEl.style.background=BG[k]||BG.start; }
+
+function typeText(str, cb){
+  textEl.textContent=''; let i=0;
+  clearInterval(window._typer);
+  window._typer=setInterval(()=>{
+    textEl.textContent+=str[i]||''; i++;
+    if(i>=str.length){ clearInterval(window._typer); if(cb)cb(); }
+  },24);
+}
+
+let dialogBoxClick=null;
+
+function getChoices(node, key){
+  let list = node.choices ? node.choices.slice() : [];
+  if(key==='contract_end' && state.affection <= 12){
+    if(!list.some(c=>c.flag==='coldStart')){
+      list.push({ t:'“随便吧，反正一开始就是交易。”', aff:-6, next:'cage_trigger', flag:'coldStart', danger:true });
+    }
+  }
+  return list;
+}
+
+function renderNode(key){
+  const node=nodes[key];
+  if(!node) return;
+  state.node=key;
+  setBG(node.bg||'start');
+  charEl.style.opacity = node.char===false ? '0' : '.9';
+  charEl.classList.toggle('tense', !!node.tense);
+
+  if(node.speaker){
+    speakerEl.textContent=node.speaker;
+    speakerEl.className = node.cls==='zhang'?'zhang':(node.cls==='narr'?'narr':'');
+  } else speakerEl.textContent='';
+
+  if(node.isEnding){ showEnding(node); return; }
+
+  choicesEl.innerHTML=''; nextHint.style.display='none'; dialogBoxClick=null;
+  customBox.style.display='none'; customInput.value='';
+
+  typeText(node.text, ()=>{
+    const list = getChoices(node, key);
+    if(list.length){
+      list.forEach(c=>{
+        const b=document.createElement('button');
+        b.className='choice'+(c.danger?' danger':'');
+        b.textContent=c.t;
+        b.onclick=()=>{
+          clickSound();
+          state.affection+=(c.aff||0);
+          if(c.flag) state.flags[c.flag]=true;
+          if(c.heart) heartSound();
+          if(c.danger) tenseSound();
+          updateHUD(); renderNode(c.next);
+        };
+        choicesEl.appendChild(b);
+      });
+    }
+
+    if(node.custom && customConfigs[node.custom]){
+      const cfg = customConfigs[node.custom];
+      customInput.placeholder = cfg.placeholder || '输入你想说的话……';
+      customBox.style.display='flex';
+    }
+
+    if(!list.length && !node.custom && node.next){
+      nextHint.style.display='block';
+      const adv=()=>{ clickSound(); renderNode(node.next); };
+      nextHint.onclick=adv; dialogBoxClick=adv;
+    }
+  });
+}
+
+$('customSend').onclick = ()=>{
+  const input = customInput.value.trim();
+  if(!input){ toast('说点什么吧'); return; }
+  const cfg = customConfigs[nodes[state.node].custom];
+  if(!cfg) return;
+  clickSound();
+  state.lastInput = input;
+  const br = matchBranch(cfg, input);
+  state.affection += (br.aff||0);
+  if(br.flag) state.flags[br.flag]=true;
+  if((br.aff||0) > 0) heartSound(); else if((br.aff||0) < 0) tenseSound();
+  updateHUD();
+
+  // 记录历史
+  state.history.push({
+    node: state.node,
+    input: input,
+    reply: br.reply,
+    aff: br.aff||0
+  });
+
+  customBox.style.display='none';
+  choicesEl.innerHTML='';
+  speakerEl.textContent='张泽禹';
+  speakerEl.className='zhang';
+  typeText(br.reply, ()=>{
+    nextHint.style.display='block';
+    const adv=()=>{ clickSound(); renderNode(br.next); };
+    nextHint.onclick=adv; dialogBoxClick=adv;
+  });
+};
+
+$('customSkip').onclick = ()=>{
+  const cfg = customConfigs[nodes[state.node].custom];
+  if(!cfg) return;
+  clickSound();
+  state.flags.silentCustom = true;
+  customBox.style.display='none';
+  choicesEl.innerHTML='';
+  speakerEl.textContent='';
+  typeText('你沉默了很久，最终什么也没说。\n\n他等了一会儿，轻轻叹了口气。\n\n“……我知道了。”', ()=>{
+    state.affection += 1;
+    updateHUD();
+    state.history.push({ node: state.node, input:'（沉默）', reply:'他等了一会儿，轻轻叹了口气。', aff:1 });
+    nextHint.style.display='block';
+    const adv=()=>{ clickSound(); renderNode(cfg.fallback.next); };
+    nextHint.onclick=adv; dialogBoxClick=adv;
+  });
+};
+
+$('dialogBox').addEventListener('click', e=>{
+  if(e.target.classList.contains('choice')) return;
+  if(e.target.closest('#customBox')) return;
+  if(dialogBoxClick){ const f=dialogBoxClick; dialogBoxClick=null; f(); }
+});
+
+/* ===================== 结局判定 ===================== */
+function showEnding(node){
+  node = node || {};
+  const f=state.flags, a=state.affection;
+  let key;
+
+  if(node.forceEnd){ key = node.forceEnd; }
+  else if(f.cageEscape || f.breakout){ key = f.cageEscape ? 'cage' : 'cage_break'; }
+  else if(a>=32 && (f.stay||f.refuse||f.stand||f.customYes||f.customLove||f.customStay) && (f.eye||f.silent||f.photo)) key='hidden_true';
+  else if(a>=24) key='true_love';
+  else if(a>=16 && f.sign) key='career';
+  else if(a>=16) key='open_end';
+  else if(a>=10 && (f.cold||f.customNo||f.customCold)) key='friend';
+  else if(f.sign||f.cold||f.customNo||f.customCold) key='regret_be';
+  else key='warm_be';
+
+  state.lastEnding=key;
+  const e=endings[key];
+  $('endTitle').textContent=e.title;
+  $('endText').textContent=e.text;
+  $('endStat').textContent='最终好感 ♥ '+a+'  ·  ID：'+state.playerId+'  ·  输入记录 '+state.history.length+' 条';
+  $('ending').style.display='flex';
+  stopBGM();
+  if(key==='hidden_true'||key==='true_love'||key==='cage'||key==='chase_good') goodSound();
+  else setTimeout(()=>beep(420,0.4,'sine',0.07),150);
+}
+
+/* ===================== 设置 & 历史 ===================== */
+$('btnSet').onclick=()=>{
+  clickSound();
+  $('inputId').value = state.playerId==='未命名'?'':state.playerId;
+  $('avatarPreview').src = state.avatar||'';
+  $('saveInfo').textContent = '当前进度：'+ state.node +' · 好感 '+state.affection;
+  $('settings').style.display='flex';
+};
+$('btnCloseSet').onclick=()=>{ clickSound(); $('settings').style.display='none'; };
+$('btnSave').onclick=()=>{
+  const id=$('inputId').value.trim();
+  if(id){ state.playerId=id; localStorage.setItem('hy_id',id); }
+  updateHUD(); clickSound(); toast('已保存 ✓');
+  $('settings').style.display='none';
+};
+$('inputAvatar').onchange=e=>{
+  const file=e.target.files[0]; if(!file) return;
+  const r=new FileReader();
+  r.onload=ev=>{ state.avatar=ev.target.result; $('avatarPreview').src=state.avatar;
+    localStorage.setItem('hy_avatar',state.avatar); toast('头像已更新 ✓'); };
+  r.readAsDataURL(file);
+};
+$('btnRestart').onclick=()=>{ clickSound(); resetGame(); };
+$('btnAgain').onclick=()=>{ clickSound(); resetGame(); };
+$('btnEndSet').onclick=()=>{ clickSound(); $('ending').style.display='none'; $('settings').style.display='flex'; };
+
+/* 历史面板 */
+$('btnHistory').onclick=()=>{
+  clickSound();
+  const list=$('historyList');
+  if(!state.history.length){
+    list.innerHTML='<div class="histItem">这一周目你还没有说过自定义的话。</div>';
+  } else {
+    list.innerHTML = state.history.map(h=>`
+      <div class="histItem">
+        <div class="h-node">📍 ${h.node}</div>
+        <div class="h-in">你说：「${h.input}」</div>
+        <div class="h-reply">他：${h.reply.replace(/\n/g,'<br>')}</div>
+        <div style="font-size:11px;color:${h.aff>=0?'#7ecb8f':'#e07a8a'};margin-top:6px;">好感 ${h.aff>=0?'+':''}${h.aff}</div>
+      </div>
+    `).join('');
+  }
+  $('settings').style.display='none';
+  $('historyPanel').style.display='flex';
+};
+$('btnCloseHistory').onclick=()=>{
+  clickSound();
+  $('historyPanel').style.display='none';
+  $('settings').style.display='flex';
+};
+
+function resetGame(){
+  state.affection=0; state.flags={}; state.node='start'; state.history=[];
+  $('settings').style.display='none'; $('ending').style.display='none';
+  $('historyPanel').style.display='none';
+  updateHUD(); startBGM(); renderNode('start');
+}
+
+$('btnSound').onclick=()=>{
+  soundOn=!soundOn;
+  $('btnSound').textContent=soundOn?'🔊':'🔇';
+  if(soundOn){ initAudio(); startBGM(); } else stopBGM();
+};
+
+/* ===================== 启动 ===================== */
+window.addEventListener('load',()=>{
+  const sid=localStorage.getItem('hy_id'), sav=localStorage.getItem('hy_avatar');
+  if(sid) state.playerId=sid;
+  if(sav) state.avatar=sav;
+  document.body.addEventListener('click',function once(){
+    initAudio(); startBGM(); document.body.removeEventListener('click',once);
+  },{once:true});
+  updateHUD(); renderNode('start');
+});
+</script>
+</body>
+</html>
